@@ -73,7 +73,7 @@ def main():
     n_outputs = 21 # 21 labels
     model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs).to(device)
 
-    model.load("NeuralNetwork-1_acc-51.14_loss-0.000004")
+    model.load("NeuralNetwork-2_acc-55.14_loss-0.000002")
 
     # Classify
     # Change infer_labels - Currently just random
