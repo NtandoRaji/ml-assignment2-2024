@@ -18,7 +18,7 @@ import torch.nn as nn
 
 # NeuralNetwork Class
 class NeuralNetwork(nn.Module):
-    def __init__(self, n_inputs, n_outputs, p_dropout=0.20, save_dir="./trained_models"):
+    def __init__(self, n_inputs, n_outputs, p_dropout=0.20, save_dir="./models"):
         super(NeuralNetwork, self).__init__()
         self.save_dir = save_dir
 
@@ -26,16 +26,16 @@ class NeuralNetwork(nn.Module):
         dropout = nn.Dropout(p=p_dropout)
 
         self.network = nn.Sequential(
-            nn.Linear(in_features=n_inputs, out_features=n_inputs * 3),
+            nn.Linear(in_features=n_inputs, out_features=512),
             activation,
             dropout,
-            nn.Linear(in_features=n_inputs * 3, out_features=n_inputs * 2),
+            nn.Linear(in_features=512, out_features=256),
             activation,
             dropout,
-            nn.Linear(in_features=n_inputs * 2, out_features=n_inputs),
+            nn.Linear(in_features=256, out_features=128),
             activation,
             dropout,
-            nn.Linear(in_features=n_inputs, out_features=n_outputs),
+            nn.Linear(in_features=128, out_features=n_outputs),
         )
     
     def forward(self, X):
@@ -73,7 +73,7 @@ def main():
     n_outputs = 21 # 21 labels
     model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs).to(device)
 
-    model.load("NeuralNetwork-2_acc-55.14_loss-0.000002")
+    model.load("NeuralNetwork-1_acc-60.76_loss-0.000002")
 
     # Classify
     # Change infer_labels - Currently just random
