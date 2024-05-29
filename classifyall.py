@@ -18,7 +18,7 @@ import torch.nn as nn
 
 # NeuralNetwork Class
 class NeuralNetwork(nn.Module):
-    def __init__(self, n_inputs, n_outputs, p_dropout=0.20, save_dir="./trained_models"):
+    def __init__(self, n_inputs, n_outputs, p_dropout=0.20, save_dir="./models"):
         super(NeuralNetwork, self).__init__()
         self.save_dir = save_dir
 
@@ -73,7 +73,7 @@ def main():
     n_outputs = 21 # 21 labels
     model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs).to(device)
 
-    model.load("NeuralNetwork-1_acc-51.14_loss-0.000004")
+    model.load("NeuralNetwork-1_acc-57.05_loss-0.000001")
 
     # Classify
     # Change infer_labels - Currently just random
