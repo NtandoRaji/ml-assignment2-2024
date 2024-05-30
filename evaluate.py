@@ -12,8 +12,8 @@ def main():
     eval_labels_name = "predlabels.txt"
 
     try:
-        os.system("python3 classifyall.py")
-        # os.system("python classifyall.py")
+        # os.system("python3 classifyall.py")
+        os.system("python classifyall.py")
     except Exception as e:
         raise RuntimeError(f"An error in classifyall.py occurred. Exception={e}")
 

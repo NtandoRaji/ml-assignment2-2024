@@ -26,16 +26,16 @@ class NeuralNetwork(nn.Module):
         dropout = nn.Dropout(p=p_dropout)
 
         self.network = nn.Sequential(
-            nn.Linear(in_features=n_inputs, out_features=512),
+            nn.Linear(in_features=n_inputs, out_features=1024),
+            activation,
+            dropout,
+            nn.Linear(in_features=1024, out_features=512),
             activation,
             dropout,
             nn.Linear(in_features=512, out_features=256),
             activation,
             dropout,
-            nn.Linear(in_features=256, out_features=128),
-            activation,
-            dropout,
-            nn.Linear(in_features=128, out_features=n_outputs),
+            nn.Linear(in_features=256, out_features=n_outputs),
         )
     
     def forward(self, X):
@@ -57,8 +57,6 @@ def main():
     test_data = pd.read_csv("testdata.txt", header=None)
     n_datapoints = test_data.shape[0]
 
-    # Move a tensor to the GPU
-    device = T.device("cuda" if T.cuda.is_available() else "cpu")
 
     # Initialize prinicipal component analysis
     components = np.load("pca_utils/pca_components.npy")
@@ -71,9 +69,9 @@ def main():
     # Initialize the model
     n_inputs = X.shape[1]
     n_outputs = 21 # 21 labels
-    model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs).to(device)
+    model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs)
 
-    model.load("NeuralNetwork-1_acc-60.76_loss-0.000002")
+    model.load("NeuralNetwork-2_acc-61.62_loss-0.000004")
 
     # Classify
     # Change infer_labels - Currently just random
@@ -81,7 +79,7 @@ def main():
     
     model.eval()
     with T.no_grad():
-        X = T.from_numpy(X).to(T.float32).to(device)
+        X = T.from_numpy(X).to(T.float32)
         infer_labels = model.forward(X).argmax(1)
 
     infer_labels = pd.DataFrame(infer_labels)
