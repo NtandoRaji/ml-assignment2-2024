@@ -16,14 +16,17 @@ import torch.nn as nn
 # import seaborn as sns
 ##################################
 
-# NeuralNetwork Class
+import torch as T
+import torch.nn as nn
+
+
 class NeuralNetwork(nn.Module):
     def __init__(self, n_inputs, n_outputs, p_dropout=0.20, save_dir="./models"):
         super(NeuralNetwork, self).__init__()
         self.save_dir = save_dir
 
         activation = nn.ReLU()
-        dropout = nn.Dropout(p=p_dropout)
+        dropout = nn.AlphaDropout(p=p_dropout)
 
         self.network = nn.Sequential(
             nn.Linear(in_features=n_inputs, out_features=1024),
@@ -41,9 +44,59 @@ class NeuralNetwork(nn.Module):
     def forward(self, X):
         logits = self.network(X)
         return logits
+    
+    def save(self, name):
+        T.save(self.state_dict(), f"{self.save_dir}/{name}.pth")
 
     def load(self, name):
-        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth", map_location=T.device('cpu')))
+        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth"))
+
+
+# NeuralNetwork Ensemble Class
+class Ensemble(nn.Module):
+    def __init__(self, model_1, model_2, n_inputs, n_outputs, save_dir="./models"):
+        super(Ensemble, self).__init__()
+        self.save_dir = save_dir
+
+        self.model_1 = model_1
+        self.model_2 = model_2
+
+        activation = nn.ReLU()
+
+        self.classifier = nn.Sequential(
+            activation,
+            nn.Linear(in_features=n_inputs, out_features=n_outputs)
+        )
+    
+    def forward(self, x):
+        x_1 = self.model_1(x.clone())
+        x_2 = self.model_2(x.clone())
+
+        x = T.cat([x_1, x_2], dim=1)
+        logits = self.classifier(x)
+        return logits
+    
+    def save(self, name):
+        T.save(self.state_dict(), f"{self.save_dir}/{name}.pth")
+
+    def load(self, name):
+        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth"))
+
+
+device = T.device("cuda" if T.cuda.is_available() else "cpu")
+model_1 = NeuralNetwork(n_inputs=63, n_outputs=21, p_dropout=0.4).to(device)
+model_2 = NeuralNetwork(n_inputs=63, n_outputs=21, p_dropout=0.4).to(device)
+model_1.save_dir = "./best_models"
+model_2.save_dir = "./best_models"
+
+#Freeze these models 
+model_1.load("NeuralNetwork-1_acc-61.81_loss-0.000009")
+for param in model_1.parameters():
+    param.requires_grad_(False)
+
+model_2.load("NeuralNetwork-2_acc-61.62_loss-0.000004")
+for param in model_2.parameters():
+    param.requires_grad_(False)
 
 
 def convert_to_pca(components, mean, std, X):
@@ -67,11 +120,9 @@ def main():
     X = convert_to_pca(components, mean, std, test_data)
 
     # Initialize the model
-    n_inputs = X.shape[1]
     n_outputs = 21 # 21 labels
-    model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs)
-
-    model.load("NeuralNetwork-2_acc-61.62_loss-0.000004")
+    model = Ensemble(model_1, model_2, n_outputs * 2, n_outputs).to(device)
+    model.load("NeuralNetwork-Ensemble_acc-62.10_loss-0.005126")
 
     # Classify
     # Change infer_labels - Currently just random
@@ -79,10 +130,10 @@ def main():
     
     model.eval()
     with T.no_grad():
-        X = T.from_numpy(X).to(T.float32)
+        X = T.from_numpy(X).to(T.float32).to(device)
         infer_labels = model.forward(X).argmax(1)
 
-    infer_labels = pd.DataFrame(infer_labels)
+    infer_labels = pd.DataFrame(infer_labels.cpu())
 
     assert type(infer_labels) == pd.DataFrame, f"infer_labels is of wrong type. It should be a DataFrame. type(infer_labels)={type(infer_labels)}"
     assert infer_labels.shape == (n_datapoints, 1), f"infer_labels.shape={infer_labels.shape} is of wrong shape. Should be {(n_datapoints, 1)}"
