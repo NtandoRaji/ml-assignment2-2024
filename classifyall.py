@@ -18,21 +18,24 @@ import torch.nn as nn
 
 # NeuralNetwork Class
 class NeuralNetwork(nn.Module):
-    def __init__(self, n_inputs, n_outputs, p_dropout=0.20, save_dir="./models"):
+    def __init__(self, n_inputs, n_outputs, p_dropout=0.20,num_groups =32, save_dir="./models"):
         super(NeuralNetwork, self).__init__()
         self.save_dir = save_dir
 
         activation = nn.ReLU()
-        dropout = nn.Dropout(p=p_dropout)
+        dropout = nn.AlphaDropout(p=p_dropout)
 
         self.network = nn.Sequential(
             nn.Linear(in_features=n_inputs, out_features=1024),
+            nn.GroupNorm(num_groups,1024),
             activation,
             dropout,
             nn.Linear(in_features=1024, out_features=512),
+            nn.GroupNorm(num_groups,512),
             activation,
             dropout,
             nn.Linear(in_features=512, out_features=256),
+            nn.GroupNorm(num_groups,256),
             activation,
             dropout,
             nn.Linear(in_features=256, out_features=n_outputs),
@@ -71,7 +74,7 @@ def main():
     n_outputs = 21 # 21 labels
     model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs)
 
-    model.load("NeuralNetwork-2_acc-61.62_loss-0.000004")
+    model.load("NeuralNetwork-2_acc-62.57_loss-0.000002")
 
     # Classify
     # Change infer_labels - Currently just random
