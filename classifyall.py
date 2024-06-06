@@ -49,7 +49,7 @@ class NeuralNetwork(nn.Module):
         T.save(self.state_dict(), f"{self.save_dir}/{name}.pth")
 
     def load(self, name):
-        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth"))
+        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth", map_location=T.device('cpu')))
 
 
 # NeuralNetwork Ensemble Class
@@ -80,7 +80,7 @@ class Ensemble(nn.Module):
         T.save(self.state_dict(), f"{self.save_dir}/{name}.pth")
 
     def load(self, name):
-        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth"))
+        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth", map_location=T.device('cpu')))
 
 
 device = T.device("cuda" if T.cuda.is_available() else "cpu")
