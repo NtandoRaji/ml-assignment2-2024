@@ -1,1 +1,4 @@
 rail.sif
+additional_data-10000.npy
+additional_labels-10000.npy
+character_fonts (with handwritten data).npz

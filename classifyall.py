@@ -32,20 +32,25 @@ class NeuralNetwork(nn.Module):
         # Define layers with expected sizes
         self.network = nn.Sequential(
             nn.Conv2d(1, input_dims[0], kernel_size=3, padding=1),  # Input shape: (1, 32, 32)
+            nn.GroupNorm(16, 32),
             activation,
             nn.MaxPool2d(kernel_size=2, stride=2),  # Output shape: (32, 16, 16)
             nn.Conv2d(32, 64, kernel_size=3, padding=1),  # Output shape: (64, 16, 16)
+            nn.GroupNorm(32, 64),  
             activation,
             nn.MaxPool2d(kernel_size=2, stride=2),  # Output shape: (64, 8, 8)
             
             nn.Flatten(),
             nn.Linear(in_features=64 * 8 * 8, out_features=1024),
+            nn.GroupNorm(128, 1024),
             activation,
             dropout,
             nn.Linear(in_features=1024, out_features=512),
+            nn.GroupNorm(64, 512),
             activation,
             dropout,
             nn.Linear(in_features=512, out_features=256),
+            nn.GroupNorm(64, 256),
             activation,
             dropout,
             nn.Linear(in_features=256, out_features=n_outputs),
@@ -151,17 +156,17 @@ def main():
     model_2 = NeuralNetwork(input_dims=n_inputs, n_outputs=n_outputs, p_dropout=0.2).to(device)
 
     #Freeze these models 
-    model_1.load("Conv-NeuralNetwork-Image Dataset-1_acc-80.00_loss-0.000001")
+    model_1.load("Conv-NeuralNetwork-GN-Image Dataset-1_acc-83.24_loss-0.000001")
     for param in model_1.parameters():
         param.requires_grad_(False)
 
-    model_2.load("Conv-NeuralNetwork-Image Dataset-2_acc-80.19_loss-0.000001")
+    model_2.load("Conv-NeuralNetwork-GN-Image Dataset-2_acc-83.05_loss-0.000001")
     for param in model_2.parameters():
         param.requires_grad_(False)
 
     model = Ensemble(model_1, model_2, 42, 21).to(device)
 
-    model.load("Conv-NeuralNetwork-Ensemble-Advance_acc-80.67_loss-0.001625")
+    model.load("Conv-NeuralNetwork-Ensemble-Advance_acc-84.29_loss-0.000850")
 
     # Classify
     # Change infer_labels - Currently just random
