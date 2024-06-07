@@ -56,7 +56,46 @@ class NeuralNetwork(nn.Module):
         return logits
 
     def load(self, name):
-        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth", map_location=T.device('cpu')))
+        device = T.device("cuda" if T.cuda.is_available() else "cpu")
+        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth", map_location=device))
+
+# Ensemble Model
+class Ensemble(nn.Module):
+    def __init__(self, model_1, model_2, n_inputs, n_outputs, save_dir="./models"):
+        super(Ensemble, self).__init__()
+        self.save_dir = save_dir
+
+        self.model_1 = model_1
+        self.model_2 = model_2
+
+        activation = nn.ReLU()
+        dropout = nn.Dropout(p=0.4)
+
+        self.classifier = nn.Sequential(
+            activation,
+            nn.Linear(in_features=n_inputs, out_features=256),
+            activation,
+            dropout,
+            nn.Linear(in_features=256, out_features=128),
+            activation,
+            dropout,
+            nn.Linear(in_features=128, out_features=n_outputs)
+        )
+    
+    def forward(self, x):
+        x_1 = self.model_1(x.clone())
+        x_2 = self.model_2(x.clone())
+
+        x = T.cat([x_1, x_2], dim=1)
+        logits = self.classifier(x)
+        return logits
+    
+    def save(self, name):
+        T.save(self.state_dict(), f"{self.save_dir}/{name}.pth")
+
+    def load(self, name):
+        device = T.device("cuda" if T.cuda.is_available() else "cpu")
+        self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth", map_location=device))
 
 
 # Data Preprocessing Functions
@@ -106,9 +145,23 @@ def main():
     # Initialize the model
     n_inputs = [32, 32]
     n_outputs = 21 # 21 labels
-    model = NeuralNetwork(input_dims=n_inputs, n_outputs=n_outputs)
+    
+    device = T.device("cuda" if T.cuda.is_available() else "cpu")
+    model_1 = NeuralNetwork(input_dims=n_inputs, n_outputs=n_outputs, p_dropout=0.2).to(device)
+    model_2 = NeuralNetwork(input_dims=n_inputs, n_outputs=n_outputs, p_dropout=0.2).to(device)
 
-    model.load("Conv-NeuralNetwork-Image Dataset-2_acc-79.90_loss-0.000000")
+    #Freeze these models 
+    model_1.load("Conv-NeuralNetwork-Image Dataset-1_acc-80.00_loss-0.000001")
+    for param in model_1.parameters():
+        param.requires_grad_(False)
+
+    model_2.load("Conv-NeuralNetwork-Image Dataset-2_acc-80.19_loss-0.000001")
+    for param in model_2.parameters():
+        param.requires_grad_(False)
+
+    model = Ensemble(model_1, model_2, 42, 21).to(device)
+
+    model.load("Conv-NeuralNetwork-Ensemble-Advance_acc-80.67_loss-0.001625")
 
     # Classify
     # Change infer_labels - Currently just random
