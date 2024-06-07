@@ -8,7 +8,8 @@
 # Un-comment out the ones you use
 import numpy as np
 import pandas as pd
-# import sklearn
+import sklearn
+import sklearn.preprocessing
 # import tensorflow as tf
 import torch as T
 import torch.nn as nn
@@ -23,9 +24,10 @@ class NeuralNetwork(nn.Module):
         self.save_dir = save_dir
 
         activation = nn.ReLU()
-        dropout = nn.Dropout(p=p_dropout)
+        dropout = nn.AlphaDropout(p=p_dropout)
 
         self.network = nn.Sequential(
+            nn.Flatten(),
             nn.Linear(in_features=n_inputs, out_features=1024),
             activation,
             dropout,
@@ -46,32 +48,54 @@ class NeuralNetwork(nn.Module):
         self.load_state_dict(T.load(f"{self.save_dir}/{name}.pth", map_location=T.device('cpu')))
 
 
-def convert_to_pca(components, mean, std, X):
-    Z = (X - mean)/std
-    return Z @ components.transpose()
+# Data Preprocessing Functions
+def rotate_image(image, orientation):
+    angle = 90 * orientation
+    
+    if angle == 0:
+        return image
+    elif angle == 90:
+        return np.fliplr(np.transpose(image))  # Rotate 90 degrees clockwise
+    elif angle == 180:
+        return np.flipud(np.fliplr(image))  # Rotate 180 degrees
+    elif angle == 270:
+        return np.transpose(np.fliplr(image))  # Rotate 270 degrees clockwise
+
+
+def preprocess_data(X):
+    x = X[:-1]
+    orientation = X[-1] # 4 orientations: 0, 1, 2, 3
+
+    filtered_x = x[x >= 0] # Filter out negative values
+    filtered_x = np.minimum(filtered_x, 255.0) # cap values greater than 255 to 255
+    image = filtered_x.reshape([32, 32]) # reshape to an image
+
+    normalized_image = sklearn.preprocessing.MinMaxScaler().fit_transform(image) # Normalize Image
+
+    rotated_image = rotate_image(normalized_image, orientation) #Rotate Image
+    return rotated_image
 
 
 def main():
     # TODO
     # pass
-    test_data = pd.read_csv("testdata.txt", header=None)
+    test_data = pd.read_csv("testdata.txt", header=None).to_numpy()
     n_datapoints = test_data.shape[0]
-
-
-    # Initialize prinicipal component analysis
-    components = np.load("pca_utils/pca_components.npy")
-    mean = np.load("pca_utils/X_mean.npy")
-    std = np.load("pca_utils/X_std.npy")
-    test_data = test_data.to_numpy()
     
-    X = convert_to_pca(components, mean, std, test_data)
+    # Preprocess Test Data
+    preprocessed_test_data = []
+    for data_point in test_data:
+        preprocess_X = preprocess_data(data_point)
+        preprocessed_test_data.append(preprocess_X)
+    
+    X = np.array(preprocessed_test_data)
 
     # Initialize the model
-    n_inputs = X.shape[1]
+    n_inputs = len(np.reshape(X[0], -1))
     n_outputs = 21 # 21 labels
     model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs)
 
-    model.load("NeuralNetwork-2_acc-61.62_loss-0.000004")
+    model.load("NeuralNetwork-Image Dataset-2_acc-74.57_loss-0.000001")
 
     # Classify
     # Change infer_labels - Currently just random
