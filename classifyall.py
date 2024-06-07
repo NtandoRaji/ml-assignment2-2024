@@ -19,16 +19,24 @@ import torch.nn as nn
 
 # NeuralNetwork Class
 class NeuralNetwork(nn.Module):
-    def __init__(self, n_inputs, n_outputs, p_dropout=0.20, save_dir="./models"):
+    def __init__(self, input_dims, n_outputs, p_dropout=0.20, save_dir="./models"):
         super(NeuralNetwork, self).__init__()
         self.save_dir = save_dir
 
         activation = nn.ReLU()
         dropout = nn.AlphaDropout(p=p_dropout)
 
+        # Define layers with expected sizes
         self.network = nn.Sequential(
+            nn.Conv2d(1, input_dims[0], kernel_size=3, padding=1),  # Input shape: (1, 32, 32)
+            activation,
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Output shape: (32, 16, 16)
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),  # Output shape: (64, 16, 16)
+            activation,
+            nn.MaxPool2d(kernel_size=2, stride=2),  # Output shape: (64, 8, 8)
+            
             nn.Flatten(),
-            nn.Linear(in_features=n_inputs, out_features=1024),
+            nn.Linear(in_features=64 * 8 * 8, out_features=1024),
             activation,
             dropout,
             nn.Linear(in_features=1024, out_features=512),
@@ -39,7 +47,7 @@ class NeuralNetwork(nn.Module):
             dropout,
             nn.Linear(in_features=256, out_features=n_outputs),
         )
-    
+
     def forward(self, X):
         logits = self.network(X)
         return logits
@@ -89,13 +97,15 @@ def main():
         preprocessed_test_data.append(preprocess_X)
     
     X = np.array(preprocessed_test_data)
+    # Reshape X
+    X = X.reshape([-1, 1, 32, 32])
 
     # Initialize the model
-    n_inputs = len(np.reshape(X[0], -1))
+    n_inputs = [32, 32]
     n_outputs = 21 # 21 labels
-    model = NeuralNetwork(n_inputs=n_inputs, n_outputs=n_outputs)
+    model = NeuralNetwork(input_dims=n_inputs, n_outputs=n_outputs)
 
-    model.load("NeuralNetwork-Image Dataset-2_acc-74.57_loss-0.000001")
+    model.load("Conv-NeuralNetwork-Image Dataset-2_acc-79.90_loss-0.000000")
 
     # Classify
     # Change infer_labels - Currently just random
